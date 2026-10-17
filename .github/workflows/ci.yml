@@ -15,14 +15,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        go: [minimum, stable]   # the go.mod version and the latest release
     runs-on: ${{ matrix.os }}
+    name: test (${{ matrix.os }}, go ${{ matrix.go }})
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: ${{ matrix.go == 'stable' && 'stable' || '' }}
+          go-version-file: ${{ matrix.go == 'minimum' && 'go.mod' || '' }}
       - name: Check formatting
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.go == 'stable'
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
       - run: go test -race ./...
@@ -30,20 +33,20 @@ jobs:
   vulncheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: stable   # scan the toolchain releases are built with
       - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
   conformance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: go build -o junction ./cmd/junction
@@ -64,10 +67,10 @@ jobs:
       id-token: write     # sign build provenance
       attestations: write # store build provenance
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
+          go-version: stable   # ship binaries built with a patched standard library
       - name: Build binaries
         run: |
           mkdir dist
@@ -79,10 +82,10 @@ jobs:
           done
           cd dist && sha256sum junction-* > checksums.txt && cat checksums.txt
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/junction-*
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           generate_release_notes: true
