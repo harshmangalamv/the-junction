@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Junction</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 8h8l8 8h8M4 24h8l8-8' stroke='%230f7c8c' stroke-width='3.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23d99a00'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600&display=swap">
+<style>
+:root {
+  --bg: #eef1f4;
+  --panel: #ffffff;
+  --line: #d3dae2;
+  --line-soft: #e4e9ee;
+  --ink: #18232e;
+  --muted: #5a6876;
+  --legacy: #c98c00;      /* amber signal: 2025-11-25 and earlier */
+  --legacy-tint: #fbf1d9;
+  --modern: #0f7c8c;      /* teal signal: 2026-07-28 */
+  --modern-tint: #dcf0f2;
+  --stop: #c0392b;        /* red signal: blocked / error */
+  --stop-tint: #f8e1de;
+  --go: #2f855a;
+  --track: #9aa8b5;
+  --code-bg: #f6f8fa;
+  --focus: #0f7c8c;
+  --font: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-cond: "Barlow Semi Condensed", "Barlow", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11171d; --panel: #182029; --line: #2a3541; --line-soft: #222c36;
+    --ink: #e4eaf0; --muted: #94a3b2; --legacy: #e3a817; --legacy-tint: #3a2f12;
+    --modern: #2cb3c4; --modern-tint: #10333a; --stop: #ec6a5c; --stop-tint: #3d1d1a;
+    --go: #4fbf86; --track: #4d5c6b; --code-bg: #121a22; --focus: #2cb3c4;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.5 var(--font);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+/* ---- top bar ---- */
+header.bar { border-bottom: 1px solid var(--line); background: var(--panel); }
+.bar .wrap { display: flex; align-items: center; gap: 20px; min-height: 60px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; }
+.brand small { font-weight: 500; font-size: 13px; color: var(--muted); letter-spacing: 0; }
+.endpoint { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; }
+.endpoint code { font-family: var(--mono); font-size: 13px; background: var(--code-bg); border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 52vw; }
+.btn { border: 1px solid var(--line); background: var(--panel); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; }
+.btn:hover { border-color: var(--track); }
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--track); }
+.live.on i { background: var(--go); box-shadow: 0 0 0 3px color-mix(in srgb, var(--go) 25%, transparent); }
+
+/* ---- hero: the junction diagram ---- */
+.hero { padding: 28px 0 8px; }
+.hero h1 { font-family: var(--font-cond); font-weight: 600; font-size: 30px; line-height: 1.15; margin: 0 0 4px; letter-spacing: -0.01em; }
+.hero p.lede { margin: 0 0 18px; color: var(--muted); max-width: 70ch; }
+.board { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 8px 4px; position: relative; }
+#diagram { width: 100%; height: auto; display: block; }
+#diagram .track { fill: none; stroke: var(--track); stroke-width: 2; }
+#diagram .node rect { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+#diagram .node text { fill: var(--ink); font: 600 15px var(--font); }
+#diagram .node .sub { fill: var(--muted); font: 500 12.5px var(--font); }
+#diagram .node.down rect { stroke-dasharray: 4 3; }
+#diagram .node.down text { fill: var(--muted); }
+#diagram .era-bar.legacy { fill: var(--legacy); }
+#diagram .era-bar.modern { fill: var(--modern); }
+#diagram .era-bar.unknown { fill: var(--track); }
+#diagram .hub circle.outer { fill: var(--panel); stroke: var(--ink); stroke-width: 2.5; }
+#diagram .hub text { fill: var(--ink); font: 700 14px var(--font); text-anchor: middle; }
+#diagram .hub .sub { fill: var(--muted); font: 500 12px var(--font); }
+#diagram .colhead { fill: var(--muted); font: 500 13px var(--font); }
+#diagram .empty { fill: var(--muted); font: 500 14px var(--font); }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 6px 10px 8px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend b { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+
+.figures { display: flex; flex-wrap: wrap; gap: 6px 28px; padding: 16px 2px 4px; font-size: 15px; color: var(--muted); }
+.figures strong { color: var(--ink); font-family: var(--font-cond); font-weight: 600; font-size: 22px; margin-right: 5px; }
+
+/* ---- tabs ---- */
+nav.tabs { display: flex; gap: 4px; margin: 28px 0 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+nav.tabs button { border: 0; background: none; padding: 10px 14px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+nav.tabs button .count { font-weight: 500; color: var(--muted); margin-left: 4px; }
+section.panel { padding: 18px 0 60px; }
+section.panel[hidden] { display: none; }
+
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.toolbar input[type=search], .toolbar select { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 6px 10px; min-width: 0; }
+.toolbar input[type=search] { flex: 1 1 220px; max-width: 360px; }
+.toolbar .note { color: var(--muted); font-size: 14px; margin-left: auto; }
+label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--muted); }
+
+.tablewrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-weight: 600; color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 13px; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover td { background: color-mix(in srgb, var(--track) 9%, transparent); }
+tbody tr.fresh td { animation: fresh 1.6s ease-out; }
+@keyframes fresh { from { background: color-mix(in srgb, var(--modern) 14%, transparent); } }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.time { color: var(--muted); white-space: nowrap; }
+td.tool { font-weight: 600; word-break: break-word; }
+td .desc { color: var(--muted); font-weight: 400; font-size: 13px; max-width: 60ch; }
+.mutetext { color: var(--muted); }
+.show-sm { display: none; }
+td .tool, td.tool { word-break: break-word; }
+
+.era { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+.era.legacy { background: var(--legacy-tint); color: color-mix(in srgb, var(--legacy) 70%, var(--ink)); }
+.era.modern { background: var(--modern-tint); color: color-mix(in srgb, var(--modern) 70%, var(--ink)); }
+.era.unknown { background: var(--line-soft); color: var(--muted); }
+.route { white-space: nowrap; }
+.route .arrow { color: var(--muted); margin: 0 3px; }
+
+.status { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 500; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--go); }
+.status.error::before, .status.blocked::before { background: var(--stop); }
+.status.toolerror::before { background: var(--legacy); }
+.status.input_required::before { background: var(--modern); }
+.redact { font-size: 12.5px; color: color-mix(in srgb, var(--stop) 75%, var(--ink)); white-space: nowrap; }
+
+.tokenbar { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.tokenbar span.bar { width: 90px; height: 6px; background: var(--line-soft); border-radius: 3px; overflow: hidden; display: inline-block; }
+.tokenbar span.bar i { display: block; height: 100%; background: var(--ink); opacity: .75; }
+tr.hidden-tool td { opacity: .55; }
+tr.hidden-tool td.rule { opacity: 1; color: var(--stop); }
+
+.servers { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+.server { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; border-left: 5px solid var(--track); }
+.server.legacy { border-left-color: var(--legacy); }
+.server.modern { border-left-color: var(--modern); }
+.server.down { border-left-color: var(--stop); }
+.server h3 { margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.server dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 10px 0; font-size: 14px; }
+.server dt { color: var(--muted); }
+.server dd { margin: 0; word-break: break-word; }
+.server dd code { font-family: var(--mono); font-size: 12.5px; }
+.server .err { color: var(--stop); font-size: 14px; margin: 6px 0; }
+.logs { font-family: var(--mono); font-size: 12px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin-top: 8px; }
+.logs .junction { color: var(--modern); }
+.logs .stderr { color: var(--muted); }
+
+.empty-state { padding: 34px 16px; text-align: center; color: var(--muted); }
+.empty-state code { font-family: var(--mono); background: var(--code-bg); padding: 2px 6px; border-radius: 4px; }
+
+/* ---- detail drawer ---- */
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(680px, 100vw); background: var(--panel); border-left: 1px solid var(--line); box-shadow: -18px 0 40px rgba(16, 24, 32, .14); transform: translateX(105%); transition: transform .22s ease; z-index: 20; display: flex; flex-direction: column; }
+.drawer.open { transform: none; }
+.drawer header { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.drawer header h2 { margin: 0; font-size: 19px; word-break: break-word; }
+.drawer header p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.drawer header .btn { margin-left: auto; }
+.drawer .body { overflow: auto; padding: 14px 18px 40px; }
+.drawer h4 { margin: 18px 0 6px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 14px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; word-break: break-word; }
+pre.json { font-family: var(--mono); font-size: 12.5px; line-height: 1.5; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; overflow: auto; max-height: 420px; margin: 0; white-space: pre-wrap; word-break: break-word; }
+pre.json .k { color: var(--modern); }
+pre.json .s { color: var(--ink); }
+pre.json .n { color: color-mix(in srgb, var(--legacy) 80%, var(--ink)); }
+pre.json .r { background: var(--stop-tint); color: var(--stop); border-radius: 3px; padding: 0 2px; }
+.scrim { position: fixed; inset: 0; background: rgba(10, 16, 22, .28); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 15; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 8px 14px; border-radius: 6px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 30; }
+.toast.show { opacity: 1; }
+
+@media (max-width: 640px) {
+  .hero h1 { font-size: 25px; }
+  .endpoint { margin-left: 0; width: 100%; }
+  .endpoint code { max-width: none; flex: 1; }
+  .figures strong { font-size: 19px; }
+  .hide-sm { display: none; }
+  .show-sm { display: block !important; }
+  td, th { padding: 8px 9px; }
+  td.time { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 8h8l8 8h8M4 24h8l8-8" stroke="var(--modern)" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="16" cy="16" r="3.5" fill="var(--legacy)"/></svg>
+      Junction <small id="version"></small>
+    </div>
+    <div class="endpoint">
+      <span class="live" id="live"><i></i><span>Connecting</span></span>
+      <code id="endpoint" title="MCP endpoint">…</code>
+      <button class="btn" id="copy">Copy endpoint</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Every agent, every server, one junction</h1>
+    <p class="lede" id="lede">Watch requests travel from clients through the gateway to each MCP server. A dot that changes colour at the junction was translated between protocol versions.</p>
+    <div class="board">
+      <svg id="diagram" viewBox="0 0 1000 300" role="img" aria-label="Live diagram of clients, the Junction gateway and upstream servers"></svg>
+      <div class="legend">
+        <span><b style="background:var(--legacy)"></b>Legacy protocol (2025-11-25)</span>
+        <span><b style="background:var(--modern)"></b>Stateless protocol (2026-07-28)</span>
+        <span><b style="background:var(--stop)"></b>Blocked or failed</span>
+      </div>
+    </div>
+    <div class="figures" id="figures"></div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="traffic">Traffic<span class="count" id="c-traffic"></span></button>
+    <button role="tab" aria-selected="false" data-tab="tools">Tools<span class="count" id="c-tools"></span></button>
+    <button role="tab" aria-selected="false" data-tab="servers">Servers<span class="count" id="c-servers"></span></button>
+  </nav>
+
+  <section class="panel" id="p-traffic" role="tabpanel">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Filter by tool, client, server or method" aria-label="Filter traffic">
+      <select id="fstatus" aria-label="Status filter">
+        <option value="">All results</option>
+        <option value="problem">Errors and blocked</option>
+        <option value="bridged">Bridged between versions</option>
+        <option value="redacted">With redactions</option>
+      </select>
+      <label class="check"><input type="checkbox" id="paused"> Pause</label>
+      <span class="note" id="tnote"></span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Time</th><th class="hide-sm">Client</th><th>Request</th><th class="hide-sm">Route</th><th>Result</th><th class="num">Duration</th>
+        </tr></thead>
+        <tbody id="traffic"></tbody>
+      </table>
+      <div class="empty-state" id="traffic-empty" hidden>No traffic yet. Point an MCP client at <code id="ep2"></code> or run <code>junction demo</code>.</div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-tools" role="tabpanel" hidden>
+    <div class="toolbar">
+      <input type="search" id="tq" placeholder="Filter tools" aria-label="Filter tools">
+      <label class="check"><input type="checkbox" id="showHidden" checked> Show tools hidden by policy</label>
+      <button class="btn" id="refresh">Reload tool lists</button>
+      <span class="note" id="tokennote"></span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Tool</th><th class="num">Context cost</th><th>Policy</th><th class="num">Calls</th><th class="num hide-sm">Avg</th>
+        </tr></thead>
+        <tbody id="tools"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="p-servers" role="tabpanel" hidden>
+    <div class="servers" id="servers"></div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="d-title">
+  <header>
+    <div><h2 id="d-title"></h2><p id="d-sub"></p></div>
+    <button class="btn" id="d-close">Close</button>
+  </header>
+  <div class="body" id="d-body"></div>
+</aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtMs = (ms) => ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : ms >= 10 ? Math.round(ms) + " ms" : ms.toFixed(1) + " ms";
+const fmtTime = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const api = (p, o) => fetch(p, o).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const state = { entries: [], servers: [], tools: [], overview: null, clients: new Map(), sep: "__" };
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 1800); }
+
+/* ---------- overview & figures ---------- */
+async function loadOverview() {
+  const o = await api("/api/overview");
+  state.overview = o; state.sep = o.separator || "__";
+  $("#version").textContent = o.version;
+  $("#endpoint").textContent = o.endpoint; $("#ep2").textContent = o.endpoint;
+  const s = o.stats, tk = o.tokens;
+  const red = Object.values(s.redactions || {}).reduce((a, b) => a + b, 0);
+  $("#figures").innerHTML = [
+    [s.requests, s.requests === 1 ? "request" : "requests"],
+    [s.requests ? fmtMs(s.p95Ms) : "–", "p95 latency"],
+    [s.bridged, "bridged between versions"],
+    [red, o.redactMode === "detect" ? "PII matches detected" : (red === 1 ? "value redacted" : "values redacted")],
+    [s.blocked, s.blocked === 1 ? "call blocked by policy" : "calls blocked by policy"],
+    ["~" + tk.visibleTokens.toLocaleString(), "tokens of tool definitions per request"],
+  ].map(([n, l]) => `<span><strong>${esc(n)}</strong>${esc(l)}</span>`).join("");
+  $("#c-servers").textContent = o.serversUp + "/" + o.servers;
+}
+
+/* ---------- traffic ---------- */
+function statusOf(e) {
+  if (e.status === "ok" && e.isError) return ["toolerror", "Tool error"];
+  return ({ ok: ["ok", "OK"], error: ["error", "Error"], blocked: ["blocked", "Blocked"], input_required: ["input_required", "Needs input"] })[e.status] || ["ok", e.status];
+}
+function eraChip(era, label) { return `<span class="era ${esc(era || "unknown")}">${esc(label || era || "unknown")}</span>`; }
+function requestLabel(e) {
+  const name = e.tool ? `<div class="tool">${esc(e.tool)}</div>` : "";
+  return `${name}<div class="mutetext">${esc(e.method)}</div>`;
+}
+function matches(e) {
+  const q = $("#q").value.trim().toLowerCase();
+  if (q && ![e.tool, e.client, e.server, e.method].some((v) => (v || "").toLowerCase().includes(q))) return false;
+  const f = $("#fstatus").value;
+  if (f === "problem" && !(e.status === "error" || e.status === "blocked" || e.isError)) return false;
+  if (f === "bridged" && !e.bridged) return false;
+  if (f === "redacted" && !e.redactions) return false;
+  return true;
+}
+function row(e, fresh) {
+  const [cls, label] = statusOf(e);
+  const red = e.redactions ? Object.entries(e.redactions).map(([k, v]) => `${k} ×${v}`).join(", ") : "";
+  const route = e.server ? `${eraChip(e.clientEra)}<span class="arrow">→</span>${eraChip(e.serverEra)} <span class="mutetext">${esc(e.server)}</span>` : eraChip(e.clientEra);
+  return `<tr class="click${fresh ? " fresh" : ""}" data-seq="${e.seq}" tabindex="0">
+    <td class="time">${fmtTime(e.time)}</td>
+    <td class="hide-sm">${esc(e.client)}</td>
+    <td>${requestLabel(e)}<div class="mutetext show-sm">${esc(e.client)}</div></td>
+    <td class="route hide-sm">${route}</td>
+    <td><span class="status ${cls}">${label}</span>${red ? `<div class="redact">Redacted ${esc(red)}</div>` : ""}${e.error ? `<div class="mutetext">${esc(e.error).slice(0, 90)}</div>` : ""}</td>
+    <td class="num">${fmtMs(e.durationMs)}</td></tr>`;
+}
+function renderTraffic() {
+  const rows = state.entries.filter((e) => e.kind === "request" && matches(e)).slice(0, 300);
+  $("#traffic").innerHTML = rows.map((e) => row(e, false)).join("");
+  $("#traffic-empty").hidden = state.entries.some((e) => e.kind === "request");
+  $("#c-traffic").textContent = state.entries.filter((e) => e.kind === "request").length || "";
+  $("#tnote").textContent = rows.length ? `Showing ${rows.length} most recent` : "";
+}
+function addEntry(e) {
+  state.entries.unshift(e);
+  if (state.entries.length > 1000) state.entries.length = 1000;
+  if (e.kind !== "request") return;
+  if (e.client) trackClient(e.client, e.clientEra);
+  animate(e);
+  if ($("#paused").checked) return;
+  if (matches(e)) {
+    $("#traffic").insertAdjacentHTML("afterbegin", row(e, true));
+    const tb = $("#traffic"); while (tb.children.length > 300) tb.lastElementChild.remove();
+  }
+  $("#traffic-empty").hidden = true;
+  $("#c-traffic").textContent = state.entries.filter((x) => x.kind === "request").length;
+}
+
+/* ---------- detail drawer ---------- */
+function highlight(json) {
+  const s = esc(JSON.stringify(json, null, 2) ?? "");
+  return s
+    .replace(/(&quot;(?:[^&]|&(?!quot;))*?&quot;)(\s*:)/g, '<span class="k">$1</span>$2')
+    .replace(/\[REDACTED:[A-Z_]+\]/g, (m) => `<span class="r">${m}</span>`)
+    .replace(/(:\s*)(-?\d+(?:\.\d+)?)/g, '$1<span class="n">$2</span>');
+}
+async function openEntry(seq) {
+  const e = await api("/api/traffic/" + seq);
+  const [, label] = statusOf(e);
+  $("#d-title").textContent = e.tool || e.method;
+  $("#d-sub").textContent = `${label} in ${fmtMs(e.durationMs)} at ${new Date(e.time).toLocaleString()}`;
+  const facts = [
+    ["Client", `${esc(e.client)} ${eraChip(e.clientEra, e.version)}`],
+    ["Method", esc(e.method)],
+    e.server ? ["Server", `${esc(e.server)} ${eraChip(e.serverEra)}`] : null,
+    e.upstream && e.upstream !== e.tool ? ["Upstream name", esc(e.upstream)] : null,
+    e.bridged ? ["Bridged", `Translated from the ${esc(e.clientEra)} to the ${esc(e.serverEra)} protocol`] : null,
+    e.redactions ? ["Redacted", esc(Object.entries(e.redactions).map(([k, v]) => `${k} ×${v}`).join(", "))] : null,
+    e.error ? ["Error", `${esc(e.error)}${e.errorCode ? ` <span class="mutetext">(${e.errorCode})</span>` : ""}`] : null,
+    e.session ? ["Session", `<code>${esc(e.session)}</code>`] : null,
+  ].filter(Boolean);
+  const parse = (r) => { try { return typeof r === "string" ? JSON.parse(r) : r; } catch { return r; } };
+  $("#d-body").innerHTML = `<dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+    <h4>Request params</h4><pre class="json">${e.params ? highlight(parse(e.params)) : "<span class='mutetext'>none</span>"}</pre>
+    <h4>Response sent to client</h4><pre class="json">${e.result ? highlight(parse(e.result)) : "<span class='mutetext'>none</span>"}</pre>
+    ${e.truncated ? "<p class='mutetext'>Payload was truncated when recorded.</p>" : ""}`;
+  $("#drawer").classList.add("open"); $("#scrim").classList.add("open");
+  $("#drawer").setAttribute("aria-hidden", "false"); $("#d-close").focus();
+}
+function closeDrawer() { $("#drawer").classList.remove("open"); $("#scrim").classList.remove("open"); $("#drawer").setAttribute("aria-hidden", "true"); }
+
+/* ---------- tools ---------- */
+async function loadTools() {
+  state.tools = await api("/api/tools");
+  renderTools();
+}
+function renderTools() {
+  const q = $("#tq").value.trim().toLowerCase();
+  const showHidden = $("#showHidden").checked;
+  const max = Math.max(1, ...state.tools.map((t) => t.tokens));
+  const list = state.tools.filter((t) => (showHidden || t.allowed) && (!q || (t.name + " " + t.description).toLowerCase().includes(q)));
+  $("#c-tools").textContent = state.tools.filter((t) => t.allowed).length;
+  if (state.overview) {
+    const tk = state.overview.tokens;
+    $("#tokennote").textContent = `${tk.visibleTools} visible tools cost about ${tk.visibleTokens.toLocaleString()} tokens on every request` + (tk.hiddenTools ? `; policy hides ${tk.hiddenTools} more (~${tk.hiddenTokens.toLocaleString()})` : "");
+  }
+  $("#tools").innerHTML = list.map((t) => `<tr class="${t.allowed ? "" : "hidden-tool"}">
+      <td class="tool">${esc(t.name)}<div class="desc">${esc(t.description)}</div></td>
+      <td class="num"><div class="tokenbar">~${t.tokens}<span class="bar"><i style="width:${(100 * t.tokens / max).toFixed(1)}%"></i></span></div></td>
+      <td class="rule">${t.allowed ? `<span class="mutetext">Visible${t.rule ? " (" + esc(t.rule) + ")" : ""}</span>` : "Hidden: " + esc(t.rule)}</td>
+      <td class="num">${t.calls || "–"}${t.errors ? ` <span class="mutetext">(${t.errors} failed)</span>` : ""}</td>
+      <td class="num hide-sm">${t.calls ? fmtMs(t.avgMs) : "–"}</td></tr>`).join("") ||
+    `<tr><td colspan="5" class="empty-state">No tools match.</td></tr>`;
+}
+
+/* ---------- servers ---------- */
+async function loadServers() {
+  state.servers = await api("/api/servers");
+  const logs = await Promise.all(state.servers.map((s) => api(`/api/servers/${encodeURIComponent(s.name)}/logs`).catch(() => [])));
+  $("#servers").innerHTML = state.servers.map((s, i) => {
+    const era = s.connected ? s.era : "down";
+    return `<article class="server ${era}">
+      <h3>${esc(s.name)} ${s.connected ? eraChip(s.era, s.era === "modern" ? "Stateless " + s.version : "Legacy " + s.version) : '<span class="era unknown">Not connected</span>'}</h3>
+      <dl>
+        <dt>Software</dt><dd>${esc(s.serverInfo?.name || "–")} ${esc(s.serverInfo?.version || "")}</dd>
+        <dt>Transport</dt><dd>${esc(s.transport)}</dd>
+        <dt>Target</dt><dd><code>${esc(s.target)}</code></dd>
+        <dt>Tools</dt><dd>${s.tools}</dd>
+      </dl>
+      ${s.lastError ? `<div class="err">${esc(s.lastError)}</div>` : ""}${s.listError ? `<div class="err">${esc(s.listError)}</div>` : ""}
+      <details><summary>Server log (${logs[i].length} lines)</summary>
+        <div class="logs">${logs[i].slice(-120).map((l) => `<div class="${esc(l.stream)}">${fmtTime(l.time)} ${esc(l.text)}</div>`).join("") || "Empty"}</div>
+      </details>
+    </article>`;
+  }).join("");
+  drawDiagram();
+}
+
+/* ---------- the junction diagram ---------- */
+let W = 1000, NODE_W = 230, HUB_X = 500, RIGHT_X = 746;
+const NODE_H = 46, GAP = 62, LEFT_X = 24, HUB_R = 42;
+function layout() { const narrow = $("#diagram").clientWidth < 700; W = narrow ? 600 : 1000; NODE_W = narrow ? 200 : 230; HUB_X = W / 2; RIGHT_X = W - LEFT_X - NODE_W; }
+function trackClient(name, era) {
+  const known = state.clients.get(name);
+  state.clients.set(name, { era: era || known?.era, seen: Date.now() });
+  if (!known) drawDiagram();
+}
+function yFor(i, n, h) { const total = n * NODE_H + (n - 1) * (GAP - NODE_H); return (h - total) / 2 + i * GAP + NODE_H / 2; }
+function drawDiagram() {
+  const svg = $("#diagram");
+  const clients = [...state.clients.entries()].sort((a, b) => b[1].seen - a[1].seen).slice(0, 6).map(([name, v]) => ({ name, ...v }));
+  const servers = state.servers;
+  const n = Math.max(clients.length, servers.length, 2);
+  layout();
+  const h = Math.max(190, n * GAP + 60);
+  svg.setAttribute("viewBox", `0 0 ${W} ${h}`);
+  const mid = h / 2 + 10;
+  const parts = [];
+  parts.push(`<text class="colhead" x="${LEFT_X}" y="22">Clients</text><text class="colhead" x="${RIGHT_X}" y="22">Servers</text>`);
+  const pos = { clients: {}, servers: {} };
+  clients.forEach((c, i) => {
+    const y = yFor(i, clients.length, h) + 12;
+    pos.clients[c.name] = y;
+    parts.push(`<path class="track" id="tc-${i}" d="M${LEFT_X + NODE_W} ${y} C ${LEFT_X + NODE_W + 120} ${y}, ${HUB_X - 140} ${mid}, ${HUB_X - HUB_R} ${mid}"/>`);
+  });
+  servers.forEach((s, i) => {
+    const y = yFor(i, servers.length, h) + 12;
+    pos.servers[s.name] = y;
+    parts.push(`<path class="track" id="ts-${i}" d="M${HUB_X + HUB_R} ${mid} C ${HUB_X + 140} ${mid}, ${RIGHT_X - 120} ${y}, ${RIGHT_X} ${y}"/>`);
+  });
+  const node = (x, y, title, sub, era, down) => `<g class="node${down ? " down" : ""}">
+      <rect x="${x}" y="${y - NODE_H / 2}" width="${NODE_W}" height="${NODE_H}" rx="7"/>
+      <rect class="era-bar ${era || "unknown"}" x="${x}" y="${y - NODE_H / 2}" width="5" height="${NODE_H}" rx="2"/>
+      <text x="${x + 16}" y="${y - 3}">${esc(title.length > (NODE_W > 210 ? 24 : 20) ? title.slice(0, NODE_W > 210 ? 23 : 19) + "…" : title)}</text>
+      <text class="sub" x="${x + 16}" y="${y + 14}">${esc(sub)}</text></g>`;
+  clients.forEach((c) => parts.push(node(LEFT_X, pos.clients[c.name], c.name, c.era === "modern" ? "Stateless 2026-07-28" : c.era === "legacy" ? "Legacy, initialize session" : "", c.era)));
+  servers.forEach((s) => parts.push(node(RIGHT_X, pos.servers[s.name], s.name, s.connected ? `${s.transport} · ${s.tools} tools` : "not connected", s.connected ? s.era : "unknown", !s.connected)));
+  if (!clients.length) parts.push(`<text class="empty" x="${LEFT_X}" y="${mid + 5}">Waiting for a client to connect</text>`);
+  parts.push(`<g class="hub"><circle class="outer" cx="${HUB_X}" cy="${mid}" r="${HUB_R}"/><text x="${HUB_X}" y="${mid + 5}">Junction</text>
+    <text class="sub" x="${HUB_X}" y="${mid + HUB_R + 20}">${state.overview ? esc(state.overview.stats.requests) + " requests" : ""}</text></g>`);
+  parts.push(`<g id="dots"></g>`);
+  svg.innerHTML = parts.join("");
+  state.pos = { clients, servers, mid };
+}
+const COLORS = () => { const cs = getComputedStyle(document.documentElement); return { legacy: cs.getPropertyValue("--legacy").trim(), modern: cs.getPropertyValue("--modern").trim(), stop: cs.getPropertyValue("--stop").trim(), unknown: cs.getPropertyValue("--track").trim() }; };
+function animate(e) {
+  if (reduceMotion || document.hidden || !state.pos) return;
+  const ci = state.pos.clients.findIndex((c) => c.name === e.client);
+  const si = state.pos.servers.findIndex((s) => s.name === e.server);
+  const a = $("#tc-" + ci), b = si >= 0 ? $("#ts-" + si) : null;
+  if (!a) return;
+  const col = COLORS();
+  const failed = e.status === "error" || e.status === "blocked";
+  const c1 = col[e.clientEra] || col.unknown;
+  const c2 = failed ? col.stop : (col[e.serverEra] || col.unknown);
+  const ns = "http://www.w3.org/2000/svg";
+  const dot = document.createElementNS(ns, "circle");
+  dot.setAttribute("r", 7); dot.setAttribute("fill", c1);
+  $("#dots").appendChild(dot);
+  const la = a.getTotalLength(), lb = b ? b.getTotalLength() : 0;
+  const dur = 1300; const t0 = performance.now();
+  const hubPause = 0.12;
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / dur);
+    let p;
+    if (t < 0.45) { p = a.getPointAtLength(la * (t / 0.45)); }
+    else if (t < 0.45 + hubPause) {
+      p = a.getPointAtLength(la);
+      if (e.bridged || failed) { dot.setAttribute("fill", c2); dot.setAttribute("r", 9); }
+    } else if (b && !(e.status === "blocked")) {
+      dot.setAttribute("r", 7); dot.setAttribute("fill", c2);
+      p = b.getPointAtLength(lb * ((t - 0.45 - hubPause) / (1 - 0.45 - hubPause)));
+    } else { dot.remove(); return; }
+    dot.setAttribute("cx", p.x); dot.setAttribute("cy", p.y);
+    if (t < 1) requestAnimationFrame(frame); else dot.remove();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- live stream ---------- */
+function connectEvents() {
+  const es = new EventSource("/api/events");
+  es.onopen = () => { $("#live").classList.add("on"); $("#live span").textContent = "Live"; };
+  es.onerror = () => { $("#live").classList.remove("on"); $("#live span").textContent = "Reconnecting"; };
+  es.onmessage = (m) => { try { addEntry(JSON.parse(m.data)); } catch {} };
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav.tabs button").forEach((x) => x.setAttribute("aria-selected", x === b ? "true" : "false"));
+  document.querySelectorAll("section.panel").forEach((p) => p.hidden = p.id !== "p-" + b.dataset.tab);
+  if (b.dataset.tab === "tools") loadTools();
+  if (b.dataset.tab === "servers") loadServers();
+}));
+$("#traffic").addEventListener("click", (ev) => { const tr = ev.target.closest("tr[data-seq]"); if (tr) openEntry(tr.dataset.seq); });
+$("#traffic").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { const tr = ev.target.closest("tr[data-seq]"); if (tr) openEntry(tr.dataset.seq); } });
+$("#q").addEventListener("input", renderTraffic);
+$("#fstatus").addEventListener("change", renderTraffic);
+$("#paused").addEventListener("change", () => { if (!$("#paused").checked) renderTraffic(); });
+$("#tq").addEventListener("input", renderTools);
+$("#showHidden").addEventListener("change", renderTools);
+$("#refresh").addEventListener("click", async () => { const r = await api("/api/refresh", { method: "POST" }); await loadTools(); await loadServers(); toast(`Reloaded: ${r.tools} tools`); });
+$("#d-close").addEventListener("click", closeDrawer);
+$("#scrim").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeDrawer(); });
+$("#copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("#endpoint").textContent); toast("Endpoint copied"); } catch { toast("Copy failed; select the text instead"); }
+});
+
+addEventListener("resize", () => { clearTimeout(drawDiagram.h); drawDiagram.h = setTimeout(drawDiagram, 150); });
+(async function init() {
+  try {
+    await loadOverview();
+    state.entries = await api("/api/traffic?limit=500");
+    for (const e of [...state.entries].reverse()) if (e.kind === "request" && e.client) state.clients.set(e.client, { era: e.clientEra, seen: Date.parse(e.time) });
+    await loadServers();
+    renderTraffic();
+    loadTools();
+    connectEvents();
+    setInterval(() => loadOverview().catch(() => {}), 3000);
+    setInterval(() => { if (!document.hidden) loadServers().catch(() => {}); }, 15000);
+  } catch (err) {
+    $("#lede").textContent = "Could not reach the Junction API. Is the gateway still running?";
+  }
+})();
+</script>
+</body>
+</html>
