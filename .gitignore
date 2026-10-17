@@ -1,0 +1,9 @@
+/dist/
+/junction
+/junction.exe
+recordings/
+*.jsonl
+junction.yaml
+!internal/config/example.yaml
+.idea/
+.vscode/
