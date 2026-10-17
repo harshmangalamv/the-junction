@@ -79,7 +79,7 @@ jobs:
           done
           cd dist && sha256sum junction-* > checksums.txt && cat checksums.txt
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/junction-*
       - uses: softprops/action-gh-release@v2
