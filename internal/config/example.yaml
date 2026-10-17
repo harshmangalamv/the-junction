@@ -1,0 +1,49 @@
+# Junction: MCP gateway configuration
+# Docs: README.md. Values like ${VAR} are read from the environment.
+
+# Where clients connect (MCP endpoint at /mcp) and where the dashboard lives (/).
+listen: 127.0.0.1:7777
+
+# Tool and prompt names become <server><separator><tool>, e.g. crm__lookup_customer.
+separator: "__"
+
+# Uncomment to require "Authorization: Bearer <token>" from clients.
+# auth:
+#   bearer_tokens: ["${JUNCTION_TOKEN}"]
+
+servers:
+  # Built-in demo servers with fictional data, so Junction works with zero setup.
+  - name: crm        # speaks the legacy protocol (initialize handshake, 2025-11-25)
+    command: ["{self}", "demo-server", "--persona", "crm"]
+  - name: billing    # speaks the new stateless protocol (2026-07-28)
+    command: ["{self}", "demo-server", "--persona", "billing"]
+
+  # A real stdio server (needs Node.js):
+  # - name: everything
+  #   command: ["npx", "-y", "@modelcontextprotocol/server-everything"]
+
+  # A Streamable HTTP server, e.g. a local app's MCP endpoint:
+  # - name: myapp
+  #   url: http://localhost:8080/mcp
+  #   headers:
+  #     Authorization: "Bearer ${MYAPP_TOKEN}"
+  #   timeout: 30s
+  #   era: auto      # auto (probe) | legacy | modern
+
+policy:
+  # Glob patterns on namespaced tool names. Deny always wins.
+  # allow: ["crm__*", "billing__get_*"]
+  deny:
+    - "crm__delete_*"
+  # Hide every tool annotated destructiveHint: true.
+  deny_destructive: false
+
+redact:
+  mode: redact       # redact | detect (log only) | off
+  # rules: [email, phone, credit_card, aadhaar, pan, ssn, jwt, aws_access_key, github_token, bearer_token, private_key]
+  # custom:
+  #   - name: employee_id
+  #     pattern: "EMP-[0-9]{6}"
+
+record:
+  file: recordings/traffic.jsonl   # every exchange, for the dashboard and `junction replay`
